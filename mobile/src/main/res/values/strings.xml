@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">SensorCollector</string>
+    <string name="pick_toppings">Actions</string>
+    <string name="ok">OK</string>
+    <string name="cancel">CANCEL</string>
+    <string name="talk_to_the_wearable">Talk to the wearable</string>
+    <string-array name="toppings" />
+</resources>
