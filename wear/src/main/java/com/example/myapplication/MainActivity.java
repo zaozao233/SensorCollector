@@ -77,11 +77,11 @@ public class MainActivity extends WearableActivity {
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         dsc_lst=new SensorDescriptor[5];
 
-        dsc_lst[0]=new SensorDescriptor(Sensor.TYPE_LINEAR_ACCELERATION,"acc_mobile");
-        dsc_lst[1]=new SensorDescriptor(Sensor.TYPE_GYROSCOPE,"gyro_mobile");
-        dsc_lst[2]=new SensorDescriptor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED,"mag_mobile");
-        dsc_lst[3]=new SensorDescriptor(Sensor.TYPE_GAME_ROTATION_VECTOR,"game_mobile");
-        dsc_lst[4]=new SensorDescriptor(Sensor.TYPE_GRAVITY,"grav_mobile");
+        dsc_lst[0]=new SensorDescriptor(Sensor.TYPE_LINEAR_ACCELERATION,"acc_watch");
+        dsc_lst[1]=new SensorDescriptor(Sensor.TYPE_GYROSCOPE,"gyro_watch");
+        dsc_lst[2]=new SensorDescriptor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED,"mag_watch");
+        dsc_lst[3]=new SensorDescriptor(Sensor.TYPE_GAME_ROTATION_VECTOR,"game_watch");
+        dsc_lst[4]=new SensorDescriptor(Sensor.TYPE_GRAVITY,"grav_watch");
 
         sensorInfo=new SensorInfo(dsc_lst,sensorManager);
 

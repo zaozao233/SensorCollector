@@ -8,6 +8,7 @@
     android:paddingLeft="20dp"
     android:paddingRight="20dp"
     android:paddingTop="20dp"
+    android:keepScreenOn ="true"
     tools:context=".MainActivity">
 
     <Button

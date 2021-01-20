@@ -57,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
     Date currentTime ;
     DateFormat dateFormat  = new SimpleDateFormat("yyyyMMddhhmmss");
 
-    final String choices[] =  { "walking", "walking without swing", "swing", "swipe left","swipe right" };  // Where we track the selected items
+    final String choices[] =  { "up", "down", "left", "right","back" ,"counterclockwise","clockwise"};  // Where we track the selected items
     final String[] perms = {"Manifest.permission.WRITE_EXTERNAL_STORAGE","Manifest.permission.VIBRATE","Manifest.permission.READ_EXTERNAL_STORAGE"};
     File[] folder_name;
     SensorInfo sensorInfo;
