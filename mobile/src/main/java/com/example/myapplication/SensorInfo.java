@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import static java.lang.System.currentTimeMillis;
+
 /**
  * Created by harry on 9/9/17.
  */
@@ -21,6 +23,8 @@ public class SensorInfo {
     File[] m_file_lst;
     String[] m_filename_lst;
     SensorEventListener[] m_listen_lst;
+    long delay, bias;
+
 
 
     String TAG="SensorInfo";
@@ -31,7 +35,8 @@ public class SensorInfo {
         m_sensor_lst=new Sensor[dsc_lst.length];
         m_listen_lst=new SensorEventListener[dsc_lst.length];
         m_filename_lst=new String[dsc_lst.length];
-
+        delay = 0;
+        bias = 0;
         for(int i=0;i<dsc_lst.length;i++){
             Sensor snr_temp= sensorManager.getDefaultSensor(dsc_lst[i].sensorType);
             m_sensor_lst[i]=snr_temp;
@@ -40,7 +45,7 @@ public class SensorInfo {
             SensorEventListener listener = new SensorEventListener() {
                 public void onAccuracyChanged(Sensor sensor, int acc) {}
                 public void onSensorChanged(SensorEvent event) {
-                    write_file(m_file_lst[idx], event);
+                    write_file(m_file_lst[idx], event ,delay,bias);
                 }
             };
             m_listen_lst[i]=listener;
@@ -63,6 +68,21 @@ public class SensorInfo {
     public void close_files(){
         for(int i=0;i<m_file_lst.length;i++){
             if (m_file_lst[i] != null && m_file_lst[i].exists()) {
+                StringBuilder content = new StringBuilder();
+                content.append("bias:");
+                content.append(bias);
+                content.append(" delay:");
+                content.append(delay);
+                FileWriter fw = null;
+                try {
+                    fw = new FileWriter(m_file_lst[i].getAbsoluteFile(), true);
+                    BufferedWriter bw = new BufferedWriter(fw);
+                    bw.append(content.toString());
+                    bw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 m_file_lst[i] = null;
             }
         }
@@ -76,7 +96,8 @@ public class SensorInfo {
     }
 
 
-    private void write_file(File f, SensorEvent event) {
+    private void write_file(File f, SensorEvent event, Long delay, Long bias) {
+        long realtime = currentTimeMillis() + bias;
         long time = event.timestamp;
         float x ;
         float y ;
@@ -100,6 +121,9 @@ public class SensorInfo {
 
 
         StringBuilder content = new StringBuilder();
+        content.append(realtime);
+        content.append(",");
+
         content.append(time);
         content.append(",");
 

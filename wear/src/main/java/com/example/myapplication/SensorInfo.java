@@ -10,6 +10,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import static java.lang.System.currentTimeMillis;
 
 /**
  * Created by harry on 9/9/17.
@@ -21,6 +25,9 @@ public class SensorInfo {
     File[] m_file_lst;
     String[] m_filename_lst;
     SensorEventListener[] m_listen_lst;
+    static long bias = 1500 ;
+    DateFormat dateFormat;
+
 
 
     String TAG="SensorInfo";
@@ -31,6 +38,7 @@ public class SensorInfo {
         m_sensor_lst=new Sensor[dsc_lst.length];
         m_listen_lst=new SensorEventListener[dsc_lst.length];
         m_filename_lst=new String[dsc_lst.length];
+        dateFormat  = new SimpleDateFormat("yyyyMMddhhmmssSSS");
 
         for(int i=0;i<dsc_lst.length;i++){
             Sensor snr_temp= sensorManager.getDefaultSensor(dsc_lst[i].sensorType);
@@ -77,6 +85,7 @@ public class SensorInfo {
 
 
     private void write_file(File f, SensorEvent event) {
+        long realtime = currentTimeMillis();
         long time = event.timestamp;
         float x ;
         float y ;
@@ -101,6 +110,9 @@ public class SensorInfo {
 
 
         StringBuilder content = new StringBuilder();
+        content.append(realtime - bias);
+        content.append(",");
+
         content.append(time);
         content.append(",");
 

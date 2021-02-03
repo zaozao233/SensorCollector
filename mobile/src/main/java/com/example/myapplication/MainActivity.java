@@ -2,15 +2,16 @@ package com.example.myapplication;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-
-import android.Manifest;
-import android.app.Dialog;
+//import android.app.Activity;
+//import android.Manifest;
+//import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Build;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Looper;
 import android.os.Vibrator;
@@ -46,27 +47,88 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import static java.lang.System.currentTimeMillis;
 
 
 public class MainActivity extends AppCompatActivity {
+
+    class NewThread extends Thread {
+        String path;
+        String message;
+        //Constructor for sending information to the Data Layer//
+
+        NewThread(String p, String m) {
+            path = p;
+            message = m;
+        }
+
+        public void run() {
+            //Retrieve the connected devices, known as nodes//
+            Task<List<Node>> wearableList =
+                    Wearable.getNodeClient(getApplicationContext()).getConnectedNodes();
+            try {
+
+                List<Node> nodes = Tasks.await(wearableList);
+                for (Node node : nodes) {
+                    Task<Integer> sendMessageTask =
+                            //Send the message//
+                            Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), path, message.getBytes());
+
+//                    try {
+//
+//                        //Block on a task and get the result synchronously//
+//                        Integer result = Tasks.await(sendMessageTask);
+//                        /*String messagetext = "start sending message 1234";
+//                        Task<Integer> sendMessageTask2 =
+//
+//                                //Send the message//
+//                                Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), path, messagetext.getBytes());
+//                        Integer result2 = Tasks.await(sendMessageTask);
+///                       sendmessage("start sending message 1234"); //+ dateFormat.format(currentTime) */
+//
+//                        //if the Task fails, then…..//
+//                    } catch (ExecutionException exception) {
+//                        //TO DO: Handle the exception//
+//                        Log.d("error1","shit happens");
+//
+//                    } catch (InterruptedException exception) {
+//                        Log.d("error2","shit happens");
+//
+//                        //TO DO: Handle the exception//
+//                    }
+                }
+            } catch (ExecutionException exception) {
+
+                //TO DO: Handle the exception//
+
+            } catch (InterruptedException exception) {
+
+                //TO DO: Handle the exception//
+            }
+        }
+    }
+
     Button talkbutton,startbutton,endbutton;
     TextView textview;
     protected Handler myHandler;
-    int receivedMessageNumber = 1;
-    int sentMessageNumber = 1;
-    Date currentTime ;
-    DateFormat dateFormat  = new SimpleDateFormat("yyyyMMddhhmmss");
 
-    final String choices[] =  { "up", "down", "left", "right","back" ,"counterclockwise","clockwise"};  // Where we track the selected items
+    Date currentTime ;
+    DateFormat dateFormat  = new SimpleDateFormat("yyyyMMddhhmmssSSS");
+
+    final String choices[] =  { "up", "down", "left", "right","back" ,"counterclockwise","clockwise","walking","WGW"};  // Where we track the selected items
     final String[] perms = {"Manifest.permission.WRITE_EXTERNAL_STORAGE","Manifest.permission.VIBRATE","Manifest.permission.READ_EXTERNAL_STORAGE"};
     File[] folder_name;
     SensorInfo sensorInfo;
     SensorDescriptor[] dsc_lst;
     SensorManager sensorManager;
+    CountDownTimer countDownTimer;
+    int duration;
+    long timestamp1, timestamp2, delay,bias,sync_start,sync;
+    private LocalBroadcastManager localBroadcastManager;
+    private Receiver messageReceiver;
 
 
-
-    boolean is_collecting_data=false;
+    // boolean is_collecting_data=false;
     static final String TAG = "path name:";
 
     @Override
@@ -106,6 +168,18 @@ public class MainActivity extends AppCompatActivity {
         endbutton = findViewById(R.id.endbutton);
         textview = findViewById(R.id.textView); //refer to text area name
 
+        countDownTimer = new CountDownTimer(10*1000,1*1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                Log.d("time left",millisUntilFinished/1000+"s");
+            }
+            @Override
+            public void onFinish() {
+                stop_collect();
+                textview.setText("End collecting successfully");
+            }
+        };
+
         startbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -124,7 +198,11 @@ public class MainActivity extends AppCompatActivity {
                             //    textview.setText("show id  "+id);
                                 int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
                                 textview.setText(choices[selectedPosition]);
+                                timestamp1 = currentTimeMillis();
                                 collecting_data(choices[selectedPosition]);
+
+                                //countDownTimer.start();
+
 
                             }
                         })
@@ -142,8 +220,11 @@ public class MainActivity extends AppCompatActivity {
         endbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stop_collect();
-                textview.setText("End collecting successfully");
+//                stop_collect();
+//                textview.setText("End collecting successfully");
+                currentTime = Calendar.getInstance().getTime();
+                String strDate = dateFormat.format(currentTime);
+                talkClick(Long.toString(currentTimeMillis()),"end","*");
             }
         });
 
@@ -159,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
         });
         //Register to receive local broadcasts, which we'll be creating in the next step//
         IntentFilter messageFilter = new IntentFilter(Intent.ACTION_SEND);
-        Receiver messageReceiver = new Receiver();
+        messageReceiver = new Receiver();
         LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, messageFilter);
         /* initialize sensor */
         /*
@@ -214,13 +295,50 @@ public class MainActivity extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
         //Upon receiving each message from the wearable, display the following text//
 
-            //String message = "I just received a message from the wearable ";
-            //textview.append(message);
             String info = intent.getExtras().getString("message");
             String[] sub1 = info.split(" at ");
             String time = sub1[1];
+            Log.d("watchtime",time);
             textview.append("\n"+info);
+            Long flag;
 
+
+
+            if (info.charAt(18)=='e'){
+                Log.d("test","find end");
+                stop_collect();
+                textview.append("\nEnd successfully");
+            }
+            else{
+                timestamp2 = currentTimeMillis();
+                delay = (timestamp2-timestamp1)/2;
+                bias = Long.parseLong(time) - delay -timestamp1;
+                Log.d("Delay",Long.toString(delay));
+                Log.d("T1",Long.toString(timestamp1));
+                Log.d("T2",Long.toString(timestamp2));
+                flag = timestamp2 - delay + bias ;
+                Log.d("flag",Long.toString(flag));
+                Log.d("bias",Long.toString(bias));
+                sensorInfo.bias = bias;
+                sensorInfo.delay = delay;
+                Log.d("damn",sensorInfo.bias+"  "+sensorInfo.delay);
+            }
+//            else if(info.charAt(18)=='t'){
+////                Long flag;
+////                timestamp2 = currentTimeMillis();
+////                delay = (timestamp2-timestamp1)/2;
+////                bias = Long.parseLong(time) - delay -timestamp1;
+////                Log.d("Delay",Long.toString(delay));
+////                Log.d("T1",Long.toString(timestamp1));
+////                Log.d("T2",Long.toString(timestamp2));
+////                flag = timestamp2 - delay + bias ;
+////                Log.d("flag",Long.toString(flag));
+////                Log.d("bias",Long.toString(bias));
+////                sensorInfo.bias = bias;
+////                sensorInfo.delay = delay;
+//
+//
+//            }
         }
     }
 
@@ -228,11 +346,10 @@ public class MainActivity extends AppCompatActivity {
         String message = "Sending message1.... ";
         textview.setText(message);
         //Sending a message can block the main UI thread, so use a new thread//
-        currentTime = Calendar.getInstance().getTime();
+        timestamp1 = currentTimeMillis();
+        message = "test";
 
-        String strDate = dateFormat.format(currentTime);
-
-        new NewThread("/my_path", strDate).start();
+        new NewThread("/my_path", message).start();
         //the other way is to declare a class that implements the Runnable interface
     }
 
@@ -240,7 +357,6 @@ public class MainActivity extends AppCompatActivity {
         String message = "mobile " + state +" recording "+ actname + " at "+ time;
         textview.setText(message);
         //Sending a message can block the main UI thread, so use a new thread//
-
         new NewThread("/my_path", message).start();
         //the other way is to declare a class that implements the Runnable interface
     }
@@ -248,13 +364,13 @@ public class MainActivity extends AppCompatActivity {
 
     public void collecting_data(String action){
         String phone_foldername;
-        currentTime = Calendar.getInstance().getTime();
-
-        String strDate = dateFormat.format(currentTime);
+//        currentTime = Calendar.getInstance().getTime();
+//        String strDate = dateFormat.format(currentTime);
+        Long ctm = currentTimeMillis();
+        String strDate = dateFormat.format(ctm);
         phone_foldername = folder_name[0].toString() +"/" + action + "/" + strDate + "/";
         Log.d("path",phone_foldername+"\n");
-
-        talkClick(strDate,"start",action);
+        talkClick(Long.toString(ctm),"start",action);
         sensorInfo.set_filename(phone_foldername);
         sensorInfo.register_listener(sensorManager,SensorManager.SENSOR_DELAY_GAME);//Begin sensor data collection
         long[] pattern = {0, 1000};
@@ -264,14 +380,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void stop_collect(){
         Log.d("watch", "try to end sensor service");
-        textview.setText("try to end sensor service");
         long[] pattern = {400, 200};
         run_vibration(pattern);
-
-        currentTime = Calendar.getInstance().getTime();
-        String strDate = dateFormat.format(currentTime);
-        talkClick(strDate,"end","*");
-
         sensorInfo.unregister_listener(sensorManager);
         sensorInfo.close_files();
 
@@ -286,6 +396,16 @@ public class MainActivity extends AppCompatActivity {
             Log.d("watch", "Do not have vibration service ");
         }
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+//        if (countDownTimer != null) {
+//            countDownTimer.cancel();
+//            countDownTimer = null;
+//        }
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
+    }
 /*
 //Use a Bundle to encapsulate our message//
 
@@ -298,61 +418,7 @@ public class MainActivity extends AppCompatActivity {
     }
 */
 
-    class NewThread extends Thread {
-        String path;
-        String message;
-        //Constructor for sending information to the Data Layer//
 
-        NewThread(String p, String m) {
-            path = p;
-            message = m;
-        }
-
-        public void run() {
-        //Retrieve the connected devices, known as nodes//
-            Task<List<Node>> wearableList =
-                    Wearable.getNodeClient(getApplicationContext()).getConnectedNodes();
-            try {
-
-                List<Node> nodes = Tasks.await(wearableList);
-                for (Node node : nodes) {
-                    Task<Integer> sendMessageTask =
-                        //Send the message//
-                            Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), path, message.getBytes());
-
-                    try {
-
-                        //Block on a task and get the result synchronously//
-                        Integer result = Tasks.await(sendMessageTask);
-                        /*String messagetext = "start sending message 1234";
-                        Task<Integer> sendMessageTask2 =
-
-                                //Send the message//
-                                Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), path, messagetext.getBytes());
-                        Integer result2 = Tasks.await(sendMessageTask);
-/                       sendmessage("start sending message 1234"); //+ dateFormat.format(currentTime) */
-
-                    //if the Task fails, then…..//
-                    } catch (ExecutionException exception) {
-                        //TO DO: Handle the exception//
-                        Log.d("error1","shit happens");
-
-                    } catch (InterruptedException exception) {
-                        Log.d("error2","shit happens");
-
-                        //TO DO: Handle the exception//
-                    }
-                }
-            } catch (ExecutionException exception) {
-
-                //TO DO: Handle the exception//
-
-            } catch (InterruptedException exception) {
-
-                //TO DO: Handle the exception//
-            }
-        }
-    }
 }
 
 

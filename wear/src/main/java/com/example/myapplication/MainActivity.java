@@ -40,24 +40,26 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.wearable.Wearable;
 
+import static java.lang.System.currentTimeMillis;
+
 public class MainActivity extends WearableActivity {
     //Button startbutton, endbutton;
     //TextView info;
     protected Handler myHandler;
-    int receivedMessageNumber = 1;
-    int sentMessageNumber = 1;
     private TextView mTextView;
     Date currentTime ;
-    DateFormat dateFormat  = new SimpleDateFormat("yyyyMMddhhmmss");
+    DateFormat dateFormat  = new SimpleDateFormat("yyyyMMddhhmmssSSS");
 
-    final String choices[] =  { "walking", "walking without swing", "swing", "swipe left","swipe right" };  // Where we track the selected items
+    //final String choices[] =  { "walking", "walking without swing", "swing", "swipe left","swipe right" };  // Where we track the selected items
     final String[] perms = {"Manifest.permission.WRITE_EXTERNAL_STORAGE","Manifest.permission.VIBRATE","Manifest.permission.READ_EXTERNAL_STORAGE"};
     File[] folder_name;
     SensorInfo sensorInfo;
     SensorDescriptor[] dsc_lst;
     SensorManager sensorManager;
+    private long timestamp;
+    private LocalBroadcastManager localBroadcastManager;
+    private Receiver messageReceiver;
 
-    boolean is_collecting_data=false;
     static final String TAG = "path name:";
 
     @Override
@@ -85,35 +87,21 @@ public class MainActivity extends WearableActivity {
 
         sensorInfo=new SensorInfo(dsc_lst,sensorManager);
 
-        //startbutton = findViewById(R.id.button2);
-        //endbutton = findViewById(R.id.button3);
+
         mTextView =  findViewById(R.id.textView2);
 
-        /*startbutton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startClick(v);
-            }
-        });
-
-        endbutton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                endClick(v);
-            }
-        });
-        */
         myHandler = new Handler(Looper.getMainLooper(), new Handler.Callback() {
+
             @Override
             public boolean handleMessage(Message msg) {
                 Bundle stuff = msg.getData();
-                messageText(stuff.getString("messageText"));
+                messageText(stuff.getString("message"));
                 return true;
             }
         });
 
         IntentFilter messageFilter = new IntentFilter(Intent.ACTION_SEND);
-        Receiver messageReceiver = new Receiver();
+        messageReceiver = new Receiver();//for local broadcast
         LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, messageFilter);
         // Enables Always-on
         setAmbientEnabled();
@@ -140,6 +128,11 @@ public class MainActivity extends WearableActivity {
             ActivityCompat.requestPermissions(MainActivity.this, new String[]{permission}, 1);
         }
     }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(messageReceiver);
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
@@ -163,20 +156,26 @@ public class MainActivity extends WearableActivity {
             String info = intent.getExtras().getString("message");
             String action;
             String time;
-            String[] sub1 = info.split(" at ");
-            time = sub1[1];
-            String[] sub2 = sub1[0].split(" recording ");
-            action = sub2[1];
-
-            mTextView.setText(info);
-            if(info.charAt(7)=='s'){
-                Log.d("test","find start");
-                start_collect(action,time);
-
+            String[] sub1,sub2;
+            if (info.indexOf("test")==0 ){
+                timestamp = currentTimeMillis();
+                report(Long.toString(timestamp),"test");
             }
-            else if (info.charAt(7)=='e'){
-                Log.d("test","find end");
-                stop_collect(time);
+            else {
+                sub1 = info.split(" at ");
+                time = dateFormat.format(Long.parseLong(sub1[1]));//need to be test
+                sub2 = sub1[0].split(" recording ");
+                action = sub2[1];
+                mTextView.setText(info);
+
+                if (info.charAt(7) == 's') {
+                    Log.d("test", "find start");
+                    start_collect(action, time);
+                } else if (info.charAt(7) == 'e') {
+                    Log.d("test", "find end");
+
+                    stop_collect(time);
+                }
             }
         }
     }
@@ -219,7 +218,9 @@ public class MainActivity extends WearableActivity {
     public void report(String time ,String state){
         String message = "watch reports the " + state + " time at "+ time;
         mTextView.append("\n"+message);
-        new NewThread("/my_path", message).start();
+        NewThread foo = new NewThread("/my_path", message);
+        foo.setName(state + " repo");
+        foo.start();
     }
 
     public void start_collect(String actname, String time){
@@ -231,20 +232,22 @@ public class MainActivity extends WearableActivity {
         sensorInfo.set_filename(watch_folder);
         sensorInfo.register_listener(sensorManager,SensorManager.SENSOR_DELAY_GAME);//Begin sensor data collection
 
-        currentTime = Calendar.getInstance().getTime();
-        String watch_time = dateFormat.format(currentTime);
+//        currentTime = Calendar.getInstance().getTime();
+//        String watch_time = dateFormat.format(currentTime);
+        String watch_time = Long.toString(currentTimeMillis());
         report(watch_time, "start");
     }
 
     public void stop_collect(String time){
-        Log.d("stop_collect", "end at "+time);
+        Log.d("stop_collect", "called at "+time);
         long[] pattern = {400, 200};
         run_vibration(pattern);
         sensorInfo.unregister_listener(sensorManager);
         sensorInfo.close_files();
 
-        currentTime = Calendar.getInstance().getTime();
-        String watch_time = dateFormat.format(currentTime);
+//        currentTime = Calendar.getInstance().getTime();
+//        String watch_time = dateFormat.format(currentTime);
+        String watch_time = Long.toString(currentTimeMillis());
         report(watch_time,"end");
     }
 
@@ -280,30 +283,37 @@ public class MainActivity extends WearableActivity {
 
                 List<Node> nodes = Tasks.await(wearableList);
                 for (Node node : nodes) {
-                    Task<Integer> sendMessageTask =
+       //             Task<Integer> sendMessageTask =
 
                             //Send the message//
 
                             Wearable.getMessageClient(MainActivity.this).sendMessage(node.getId(), path, message.getBytes());
-
-                    try {
-
-                        //Block on a task and get the result synchronously//
-
-                        Integer result = Tasks.await(sendMessageTask);
-                        //sendmessage("I just sent the wearable a message " + sentMessageNumber++);
-
-                        //if the Task fails, then…..//
-
-                    } catch (ExecutionException exception) {
-
-                        //TO DO: Handle the exception//
-
-                    } catch (InterruptedException exception) {
-
-                        //TO DO: Handle the exception//
-
-                    }
+                    //Integer result = Tasks.await(sendMessageTask);
+//                    if (result==1) {
+//                        return;
+//                    }
+//                    try {
+//
+//                        //Block on a task and get the result synchronously//
+////                        currentTime = Calendar.getInstance().getTime();
+////                        String time = dateFormat.format(currentTime);
+////                        Log.d("taskawait_bft",time);
+//
+//                        //sendmessage("I just sent the wearable a message " + sentMessageNumber++);
+////                        currentTime = Calendar.getInstance().getTime();
+////                        time = dateFormat.format(currentTime);
+////                        Log.d("taskawait_aft",time);
+//                        //if the Task fails, then…..//
+//
+//                    } catch (ExecutionException exception) {
+//
+//                        //TO DO: Handle the exception//
+//
+//                    } catch (InterruptedException exception) {
+//
+//                        //TO DO: Handle the exception//
+//
+//                    }
 
                 }
 
