@@ -27,7 +27,10 @@ import android.view.View;
 import android.widget.Toast;
 
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -54,6 +57,7 @@ public class MainActivity extends WearableActivity {
     final String[] perms = {"Manifest.permission.WRITE_EXTERNAL_STORAGE","Manifest.permission.VIBRATE","Manifest.permission.READ_EXTERNAL_STORAGE"};
     File[] folder_name;
     SensorInfo sensorInfo;
+    Time_management time_management;
     SensorDescriptor[] dsc_lst;
     SensorManager sensorManager;
     private long timestamp;
@@ -86,7 +90,7 @@ public class MainActivity extends WearableActivity {
         dsc_lst[4]=new SensorDescriptor(Sensor.TYPE_GRAVITY,"grav_watch");
 
         sensorInfo=new SensorInfo(dsc_lst,sensorManager);
-
+        time_management = new Time_management(); //instantiate a time management
 
         mTextView =  findViewById(R.id.textView2);
 
@@ -148,17 +152,63 @@ public class MainActivity extends WearableActivity {
     }
 
 //Define a nested class that extends BroadcastReceiver//
+    public class Time_management{
+        public long start_r,start_s,end_r,end_s;
+        public File f;
+        public Time_management(){
+            start_r = 0;
+            start_s = 0;
+            end_r = 0;
+            end_s = 0;
+        }
+        public void set_file(String ss){
+            f = new File (ss+"watch_log.txt");
+        }
+        public void write_file (){
+            StringBuilder content = new StringBuilder();
+            content.append(start_r);
+            content.append(",");
+            content.append(start_s);
+            content.append(",");
+            content.append(end_r);
+            content.append(",");
+            content.append(end_s);
 
+            try {
+                //create new file if not exists
+                if (!f.exists()) {
+                    f.getParentFile().mkdirs();
+                    Log.i("parentfile",f.getParentFile().toString());
+                    f.createNewFile();
+                }
+
+                FileWriter fw = new FileWriter(f.getAbsoluteFile(), true);
+                BufferedWriter bw = new BufferedWriter(fw);
+                bw.append(content.toString());
+                bw.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        public void close_file(){
+            if(f != null && f.exists()){
+                f = null;
+            }
+        }
+    }
     public class Receiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
 //Upon receiving each message from the wearable, display the following text//
+            timestamp = currentTimeMillis();
             String info = intent.getExtras().getString("message");
             String action;
             String time;
             String[] sub1,sub2;
+
             if (info.indexOf("test")==0 ){
-                timestamp = currentTimeMillis();
+
                 report(Long.toString(timestamp),"test");
             }
             else {
@@ -169,12 +219,13 @@ public class MainActivity extends WearableActivity {
                 mTextView.setText(info);
 
                 if (info.charAt(7) == 's') {
+                    time_management.start_r = timestamp;
                     Log.d("test", "find start");
-                    start_collect(action, time);
+                    start_collect(action,time);
                 } else if (info.charAt(7) == 'e') {
                     Log.d("test", "find end");
-
-                    stop_collect(time);
+                    time_management.end_r = timestamp;
+                    stop_collect(Long.toString(timestamp));
                 }
             }
         }
@@ -229,12 +280,14 @@ public class MainActivity extends WearableActivity {
         run_vibration(pattern);
         String watch_folder = folder_name[0].toString()+ "/" + actname +"/" +time +"/";
         Log.d("path",watch_folder+"\n");
+        time_management.set_file(watch_folder);
         sensorInfo.set_filename(watch_folder);
         sensorInfo.register_listener(sensorManager,SensorManager.SENSOR_DELAY_GAME);//Begin sensor data collection
 
 //        currentTime = Calendar.getInstance().getTime();
 //        String watch_time = dateFormat.format(currentTime);
-        String watch_time = Long.toString(currentTimeMillis());
+        time_management.start_s = currentTimeMillis();
+        String watch_time = Long.toString(time_management.start_s);
         report(watch_time, "start");
     }
 
@@ -247,8 +300,11 @@ public class MainActivity extends WearableActivity {
 
 //        currentTime = Calendar.getInstance().getTime();
 //        String watch_time = dateFormat.format(currentTime);
-        String watch_time = Long.toString(currentTimeMillis());
+        time_management.end_s = currentTimeMillis();
+        String watch_time = Long.toString(time_management.end_s);
         report(watch_time,"end");
+        time_management.write_file();
+        time_management.close_file();
     }
 
     private void run_vibration(long[] pattern) {

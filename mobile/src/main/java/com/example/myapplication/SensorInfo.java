@@ -97,7 +97,8 @@ public class SensorInfo {
 
 
     private void write_file(File f, SensorEvent event, Long delay, Long bias) {
-        long realtime = currentTimeMillis() + bias;
+        //long realtime = currentTimeMillis() + bias;
+        long realtime = currentTimeMillis();
         long time = event.timestamp;
         float x ;
         float y ;

@@ -37,7 +37,10 @@ import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.wearable.Wearable;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -124,9 +127,10 @@ public class MainActivity extends AppCompatActivity {
     CountDownTimer countDownTimer;
     int duration;
     long timestamp1, timestamp2, delay,bias,sync_start,sync;
+
     private LocalBroadcastManager localBroadcastManager;
     private Receiver messageReceiver;
-
+    Time_management time_management;
 
     // boolean is_collecting_data=false;
     static final String TAG = "path name:";
@@ -161,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
         dsc_lst[4]=new SensorDescriptor(Sensor.TYPE_GRAVITY,"grav_mobile");
 
         sensorInfo=new SensorInfo(dsc_lst,sensorManager);
-
+        time_management = new Time_management(); //instantiate a time management
 
         talkbutton = findViewById(R.id.talkButton);
         startbutton = findViewById(R.id.startbutton);
@@ -199,11 +203,9 @@ public class MainActivity extends AppCompatActivity {
                                 int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
                                 textview.setText(choices[selectedPosition]);
                                 timestamp1 = currentTimeMillis();
+                                time_management.start_s = timestamp1;
                                 collecting_data(choices[selectedPosition]);
-
                                 //countDownTimer.start();
-
-
                             }
                         })
                         .setNegativeButton(R.string.cancel, null);
@@ -222,9 +224,10 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
 //                stop_collect();
 //                textview.setText("End collecting successfully");
-                currentTime = Calendar.getInstance().getTime();
-                String strDate = dateFormat.format(currentTime);
-                talkClick(Long.toString(currentTimeMillis()),"end","*");
+//                currentTime = Calendar.getInstance().getTime();
+//                String strDate = dateFormat.format(currentTime);
+                time_management.end_s = currentTimeMillis();
+                talkClick(Long.toString(time_management.end_s),"end","*");
             }
         });
 
@@ -274,6 +277,52 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public class Time_management{
+        public long start_r,start_s,end_r,end_s;
+        public File f;
+        public Time_management(){
+            start_r = 0;
+            start_s = 0;
+            end_r = 0;
+            end_s = 0;
+        }
+        public void set_file(String ss){
+            f = new File (ss+"mobile_log.txt");
+        }
+        public void write_file (){
+            StringBuilder content = new StringBuilder();
+            content.append(start_r);
+            content.append(",");
+            content.append(start_s);
+            content.append(",");
+            content.append(end_r);
+            content.append(",");
+            content.append(end_s);
+
+            try {
+                //create new file if not exists
+                if (!f.exists()) {
+                    f.getParentFile().mkdirs();
+                    Log.i("parentfile",f.getParentFile().toString());
+                    f.createNewFile();
+                }
+
+                FileWriter fw = new FileWriter(f.getAbsoluteFile(), true);
+                BufferedWriter bw = new BufferedWriter(fw);
+                bw.append(content.toString());
+                bw.close();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        public void close_file(){
+            if(f != null && f.exists()){
+                f = null;
+            }
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         switch (requestCode) {
@@ -301,16 +350,15 @@ public class MainActivity extends AppCompatActivity {
             Log.d("watchtime",time);
             textview.append("\n"+info);
             Long flag;
-
-
+            timestamp2 = currentTimeMillis();
 
             if (info.charAt(18)=='e'){
+                time_management.end_r = timestamp2;
                 Log.d("test","find end");
                 stop_collect();
                 textview.append("\nEnd successfully");
-            }
-            else{
-                timestamp2 = currentTimeMillis();
+            }else{
+                time_management.start_r = timestamp2;
                 delay = (timestamp2-timestamp1)/2;
                 bias = Long.parseLong(time) - delay -timestamp1;
                 Log.d("Delay",Long.toString(delay));
@@ -369,6 +417,7 @@ public class MainActivity extends AppCompatActivity {
         Long ctm = currentTimeMillis();
         String strDate = dateFormat.format(ctm);
         phone_foldername = folder_name[0].toString() +"/" + action + "/" + strDate + "/";
+        time_management.set_file(phone_foldername);
         Log.d("path",phone_foldername+"\n");
         talkClick(Long.toString(ctm),"start",action);
         sensorInfo.set_filename(phone_foldername);
@@ -384,6 +433,8 @@ public class MainActivity extends AppCompatActivity {
         run_vibration(pattern);
         sensorInfo.unregister_listener(sensorManager);
         sensorInfo.close_files();
+        time_management.write_file();
+        time_management.close_file();
 
     }
 
