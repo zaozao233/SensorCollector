@@ -54,7 +54,8 @@ public class MainActivity extends WearableActivity {
     DateFormat dateFormat  = new SimpleDateFormat("yyyyMMddhhmmssSSS");
 
     //final String choices[] =  { "walking", "walking without swing", "swing", "swipe left","swipe right" };  // Where we track the selected items
-    final String[] perms = {"Manifest.permission.WRITE_EXTERNAL_STORAGE","Manifest.permission.VIBRATE","Manifest.permission.READ_EXTERNAL_STORAGE"};
+//    final String[] perms = {"Manifest.permission.WRITE_EXTERNAL_STORAGE","Manifest.permission.VIBRATE","Manifest.permission.READ_EXTERNAL_STORAGE"};
+
     File[] folder_name;
     SensorInfo sensorInfo;
     Time_management time_management;
@@ -71,13 +72,13 @@ public class MainActivity extends WearableActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        for (int i = 0; i < perms.length; i++) {
-            if (checkPermission(perms[i])) {
-
-            } else {
-                requestPermission(perms[i]);
-            }
-        }
+//        for (int i = 0; i < perms.length; i++) {
+//            if (checkPermission(perms[i])) {
+//
+//            } else {
+//                requestPermission(perms[i]);
+//            }
+//        }
         folder_name = ContextCompat.getExternalFilesDirs(getApplicationContext(), null);
         Log.i(TAG,folder_name[0].toString());//get primary external storage
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -276,24 +277,25 @@ public class MainActivity extends WearableActivity {
 
     public void start_collect(String actname, String time){
         Log.d("start_collect","find action "+actname+" start at "+time);
-        long[] pattern = {0, 1000};
+        long[] pattern = {0, 500};
         run_vibration(pattern);
         String watch_folder = folder_name[0].toString()+ "/" + actname +"/" +time +"/";
         Log.d("path",watch_folder+"\n");
         time_management.set_file(watch_folder);
         sensorInfo.set_filename(watch_folder);
+        time_management.start_s = currentTimeMillis();
         sensorInfo.register_listener(sensorManager,SensorManager.SENSOR_DELAY_GAME);//Begin sensor data collection
 
 //        currentTime = Calendar.getInstance().getTime();
 //        String watch_time = dateFormat.format(currentTime);
-        time_management.start_s = currentTimeMillis();
+
         String watch_time = Long.toString(time_management.start_s);
         report(watch_time, "start");
     }
 
     public void stop_collect(String time){
         Log.d("stop_collect", "called at "+time);
-        long[] pattern = {400, 200};
+        long[] pattern = {200, 200};
         run_vibration(pattern);
         sensorInfo.unregister_listener(sensorManager);
         sensorInfo.close_files();

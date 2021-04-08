@@ -16,6 +16,7 @@ import android.os.Environment;
 import android.os.Looper;
 import android.os.Vibrator;
 import android.util.Log;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.content.Context;
 import android.content.Intent;
@@ -29,6 +30,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -112,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     Button talkbutton,startbutton,endbutton;
+    private Spinner spinner1,spinner2;
     TextView textview;
     protected Handler myHandler;
 
@@ -125,6 +128,7 @@ public class MainActivity extends AppCompatActivity {
     SensorDescriptor[] dsc_lst;
     SensorManager sensorManager;
     CountDownTimer countDownTimer;
+    String state,action;
     int duration;
     long timestamp1, timestamp2, delay,bias,sync_start,sync;
 
@@ -171,7 +175,37 @@ public class MainActivity extends AppCompatActivity {
         startbutton = findViewById(R.id.startbutton);
         endbutton = findViewById(R.id.endbutton);
         textview = findViewById(R.id.textView); //refer to text area name
+        spinner1 = findViewById(R.id.spinner1);
+        spinner2 = findViewById(R.id.spinner2);
 
+
+        spinner1.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                state = parent.getItemAtPosition(position).toString();
+
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        spinner2.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
+                action = parent.getItemAtPosition(position).toString();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
+        /*
         countDownTimer = new CountDownTimer(10*1000,1*1000) {
             @Override
             public void onTick(long millisUntilFinished) {
@@ -183,39 +217,47 @@ public class MainActivity extends AppCompatActivity {
                 textview.setText("End collecting successfully");
             }
         };
-
+        */
         startbutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                // Set the dialog title
-                builder.setIcon(R.drawable.ic_launcher_foreground);
-                builder.setTitle(R.string.pick_toppings)
-                        // Specify the list array, the items to be selected by default (null for none),
-                        // and the listener through which to receive callbacks when items are selected
-                        .setSingleChoiceItems(choices, -1,null )//If actions are needed when click, use the listener below
-                        // Set the action buttons
-                        .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int id) {
-                                // User clicked OK, so save the selectedItems results somewhere or return them to the component that opened the dialog
-                            //    textview.setText("show id  "+id);
-                                int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
-                                textview.setText(choices[selectedPosition]);
-                                timestamp1 = currentTimeMillis();
-                                time_management.start_s = timestamp1;
-                                collecting_data(choices[selectedPosition]);
-                                //countDownTimer.start();
-                            }
-                        })
-                        .setNegativeButton(R.string.cancel, null);
- /*                               new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int id) {
-                            }
-                        }); */
-                AlertDialog dia1 = builder.create();
-                dia1.show();
+                //below is a method that use alertdialog to select experiment
+//                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+//                // Set the dialog title
+//                builder.setIcon(R.drawable.ic_launcher_foreground);
+//                builder.setTitle(R.string.pick_toppings)
+//                        // Specify the list array, the items to be selected by default (null for none),
+//                        // and the listener through which to receive callbacks when items are selected
+//                        .setSingleChoiceItems(choices, -1,null )//If actions are needed when click, use the listener below
+//                        // Set the action buttons
+//                        .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialog, int id) {
+//                                // User clicked OK, so save the selectedItems results somewhere or return them to the component that opened the dialog
+//                            //    textview.setText("show id  "+id);
+//                                int selectedPosition = ((AlertDialog)dialog).getListView().getCheckedItemPosition();
+//                                textview.setText(choices[selectedPosition]);
+//                                timestamp1 = currentTimeMillis();
+//                                time_management.start_s = timestamp1;
+//                                collecting_data(choices[selectedPosition]);
+//                                //countDownTimer.start();
+//                            }
+//                        })
+//                        .setNegativeButton(R.string.cancel, null);
+// /*                               new DialogInterface.OnClickListener() {
+//                            @Override
+//                            public void onClick(DialogInterface dialog, int id) {
+//                            }
+//                        }); */
+//                AlertDialog dia1 = builder.create();
+//                dia1.show();
+//////
+                //below is a new method that uses spinner
+                textview.setText(state+action);
+                timestamp1 = currentTimeMillis();
+                time_management.start_s = timestamp1;
+                collecting_data(state+'/'+action);
+
             }
         });
         //end of start button definition
@@ -422,14 +464,14 @@ public class MainActivity extends AppCompatActivity {
         talkClick(Long.toString(ctm),"start",action);
         sensorInfo.set_filename(phone_foldername);
         sensorInfo.register_listener(sensorManager,SensorManager.SENSOR_DELAY_GAME);//Begin sensor data collection
-        long[] pattern = {0, 1000};
+        long[] pattern = {0, 500};
         Log.d("watch", "event triggered");
         run_vibration(pattern);
     }
 
     public void stop_collect(){
         Log.d("watch", "try to end sensor service");
-        long[] pattern = {400, 200};
+        long[] pattern = {200, 200};
         run_vibration(pattern);
         sensorInfo.unregister_listener(sensorManager);
         sensorInfo.close_files();

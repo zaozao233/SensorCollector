@@ -3,41 +3,67 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:keepScreenOn="true"
     android:orientation="vertical"
-    android:paddingBottom="20dp"
     android:paddingLeft="20dp"
-    android:paddingRight="20dp"
     android:paddingTop="20dp"
-    android:keepScreenOn ="true"
+    android:paddingRight="20dp"
+    android:paddingBottom="20dp"
     tools:context=".MainActivity">
 
     <Button
         android:id="@+id/talkButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/talk_to_the_wearable"
-        android:onClick="talkClick"/>
+        android:onClick="talkClick"
+        android:text="@string/talk_to_the_wearable" />
 
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="78dp"
+        android:layout_height="255dp"
         android:layout_marginTop="25dp">
+
+        <Spinner
+            android:id="@+id/spinner1"
+            android:layout_width="158dp"
+            android:layout_height="62dp"
+            android:layout_gravity="center|left"
+            android:layout_margin="10dp"
+            android:entries="@array/states"
+            android:textAlignment="center" />
+
+        <Spinner
+            android:id="@+id/spinner2"
+            android:layout_width="160dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center|right"
+            android:layout_margin="10dp"
+            android:entries="@array/list_motions"
+            android:textAlignment="center" />
 
         <Button
             android:id="@+id/startbutton"
-            android:layout_width="140dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center|left"
+            android:layout_width="135dp"
+            android:layout_height="59dp"
+            android:layout_gravity="bottom|left"
             android:layout_marginLeft="10dp"
             android:text="start" />
 
         <Button
             android:id="@+id/endbutton"
-            android:layout_width="140dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center|right"
+            android:layout_width="138dp"
+            android:layout_height="59dp"
+            android:layout_gravity="bottom|right"
             android:layout_marginRight="10dp"
             android:text="end" />
+
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="245dp"
+            android:layout_height="50dp"
+            android:text="select test type"
+            android:textAlignment="center"
+            android:textSize="24sp" />
     </FrameLayout>
 
     <TextView

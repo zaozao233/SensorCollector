@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="states">
+        <item>standing</item>
+        <item>sitting</item>
+        <item>walking</item>
+        <item>running</item>
+        <item>jumping</item>
+    </string-array>
+    <string-array name="list_motions">
+        <item>up</item>
+        <item>down</item>
+        <item>left</item>
+        <item>right</item>
+        <item>null</item>
+    </string-array>
+</resources>
