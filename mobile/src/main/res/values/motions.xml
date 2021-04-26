@@ -13,5 +13,8 @@
         <item>left</item>
         <item>right</item>
         <item>null</item>
+        <item>Clockwise</item>
+        <item>CounterClockwise</item>
+        <item>BackandForth</item>
     </string-array>
 </resources>

@@ -471,7 +471,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void stop_collect(){
         Log.d("watch", "try to end sensor service");
-        long[] pattern = {200, 200};
+        long[] pattern = {0, 200};
         run_vibration(pattern);
         sensorInfo.unregister_listener(sensorManager);
         sensorInfo.close_files();

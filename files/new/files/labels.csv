@@ -1,4 +1,2 @@
-,down,left,null,right,up
-sitting,0,1,2,3,4
-standing,5,6,7,8,9
-walking,10,11,12,13,14
+,BackandForth,Clockwise,CounterClockwise,down,left,null,right,up
+standing,0,1,2,3,4,5,6,7

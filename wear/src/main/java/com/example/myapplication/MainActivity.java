@@ -295,7 +295,7 @@ public class MainActivity extends WearableActivity {
 
     public void stop_collect(String time){
         Log.d("stop_collect", "called at "+time);
-        long[] pattern = {200, 200};
+        long[] pattern = {0, 200};
         run_vibration(pattern);
         sensorInfo.unregister_listener(sensorManager);
         sensorInfo.close_files();
